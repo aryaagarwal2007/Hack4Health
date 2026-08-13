@@ -11,6 +11,12 @@ and audio predictions — this is explicitly stated, not silently assumed.
 import os
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
+# Set KERAS_HOME and MPLCONFIGDIR inside project directory to prevent sandbox errors
+os.environ["KERAS_HOME"] = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".keras")
+os.environ["MPLCONFIGDIR"] = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".matplotlib")
+os.makedirs(os.environ["KERAS_HOME"], exist_ok=True)
+os.makedirs(os.environ["MPLCONFIGDIR"], exist_ok=True)
+
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -91,19 +97,24 @@ X_train, X_test, y_cls_train, y_cls_test, y_reg_train, y_reg_test = \
     train_test_split(X, y_cls, y_reg, test_size=0.2, stratify=y_cls, random_state=42)
 
 # Train tabular classifier
-print("[2/5] Training tabular RandomForest...")
-tab_clf = RandomForestClassifier(n_estimators=200, class_weight="balanced",
-                                 random_state=42, n_jobs=-1)
-tab_clf.fit(X_train, y_cls_train)
+print("[2/5] Loading PyTorch Tabular MLP (mental_health_model_package)...")
+from multimodal_pipeline import MultimodalPipeline
+pipeline = MultimodalPipeline()
 
-# Compute tabular macro F1 on test set
-tab_pred = tab_clf.predict(X_test)
+# Compute tabular predictions using PyTorch MLP
+tab_probs_list = []
+for i in range(len(X_test)):
+    sample_dict = dict(zip(feature_cols, X_test[i]))
+    p_tab, _ = pipeline.predict_tabular(sample_dict)
+    tab_probs_list.append(p_tab)
+
+tab_proba = np.array(tab_probs_list)
+tab_classes = ["Low", "Moderate", "High", "Severe"]
+tab_pred_idx = np.argmax(tab_proba, axis=1)
+tab_pred = [tab_classes[idx] for idx in tab_pred_idx]
 tab_f1 = f1_score(y_cls_test, tab_pred, average="macro")
-print(f"  Tabular macro F1: {tab_f1:.4f}")
+print(f"  Tabular PyTorch MLP macro F1: {tab_f1:.4f}")
 
-# Get tabular probabilities for test set
-tab_proba = tab_clf.predict_proba(X_test)
-tab_classes = list(tab_clf.classes_)
 
 # ─── 2. Load facial CNN and predict on validation set ───────────────────────
 print("[3/5] Loading facial CNN and predicting on validation images...")
@@ -167,7 +178,9 @@ audio_clf = joblib.load("models/audio_emotion_classifier.joblib")
 audio_le = joblib.load("models/audio_label_encoder.joblib")
 audio_class_names = joblib.load("models/audio_class_names.joblib")
 
-# Extract features for all speech files (same logic as phase3)
+# Use shared feature extraction (matches phase3b training exactly)
+from audio_features import extract_features as audio_extract
+
 EMOTION_MAP = {
     "01": "neutral", "02": "calm", "03": "happy", "04": "sad",
     "05": "angry", "06": "fearful", "07": "disgust", "08": "surprised",
@@ -181,36 +194,17 @@ audio_file_indices = []
 for idx, fpath in enumerate(wav_files):
     fname = os.path.basename(fpath)
     parts = fname.replace(".wav", "").split("-")
-    if len(parts) != 7:
+    if len(parts) != 7 or parts[3] != "01":
         continue
-    emotion_code = parts[2]
-    vocal_channel = parts[3]
-    if vocal_channel != "01":
-        continue
-    emotion = EMOTION_MAP.get(emotion_code)
+    emotion = EMOTION_MAP.get(parts[2])
     if emotion is None:
         continue
     try:
-        y, sr = librosa.load(fpath, sr=None, duration=5.0)
-        mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
-        mfcc_mean = np.mean(mfccs, axis=1)
-        mfcc_var = np.var(mfccs, axis=1)
-        f0 = librosa.yin(y, fmin=librosa.note_to_hz("C2"),
-                         fmax=librosa.note_to_hz("C7"), sr=sr)
-        f0_valid = f0[~np.isnan(f0)]
-        if len(f0_valid) > 0:
-            pitch_mean, pitch_std = np.mean(f0_valid), np.std(f0_valid)
-            pitch_range = np.max(f0_valid) - np.min(f0_valid)
-        else:
-            pitch_mean, pitch_std, pitch_range = 0.0, 0.0, 0.0
-        zcr = librosa.feature.zero_crossing_rate(y)
-        zcr_mean, zcr_var = np.mean(zcr), np.var(zcr)
-        feat = np.concatenate([mfcc_mean, mfcc_var,
-                               [pitch_mean, pitch_std, pitch_range, zcr_mean, zcr_var]])
+        feat = audio_extract(fpath)
         audio_features.append(feat)
         audio_labels.append(emotion)
         audio_file_indices.append(idx)
-    except:
+    except Exception:
         pass
 
 audio_X = np.array(audio_features)
@@ -274,11 +268,20 @@ audio_stress_probs = np.array([
     for i in audio_indices
 ])
 
-# Tabular stress probs — reorder columns to match STRESS_CLASSES
+# Tabular stress probs — map to STRESS_CLASSES ['Healthy', 'Mild_Stress', 'Moderate_Stress', 'Severe_Stress']
+TAB_TO_STRESS_MAP = {
+    "Low": "Healthy",
+    "Moderate": "Moderate_Stress",
+    "High": "Mild_Stress",
+    "Severe": "Severe_Stress"
+}
 tab_stress_probs = np.zeros((n_test, len(STRESS_CLASSES)))
 for i, cls in enumerate(tab_classes):
-    j = STRESS_CLASSES.index(cls)
-    tab_stress_probs[:, j] = tab_proba[:, i]
+    mapped_cls = TAB_TO_STRESS_MAP.get(cls, "Healthy")
+    if mapped_cls in STRESS_CLASSES:
+        j = STRESS_CLASSES.index(mapped_cls)
+        tab_stress_probs[:, j] = tab_proba[:, i]
+
 
 # Weighted fusion
 fused_probs = (

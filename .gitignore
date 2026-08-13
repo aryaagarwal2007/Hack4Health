@@ -36,3 +36,8 @@ multimodal_app.log
 tmp/
 scratch/
 *.tmp
+
+# ── Raw Dataset Dumps ───────────────────────────────────────
+data/audios/
+data/images/
+
