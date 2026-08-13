@@ -345,7 +345,7 @@ class MultimodalPipeline:
     # they are the model's default when it is uncertain.
     REALTIME_EMOTION_THRESHOLDS = {
         "Happy":    0.38,  # clear smile → trust at 38 %
-        "Sad":      0.40,  # unmistakable sadness → 40 %
+        "Sad":      0.35,  # boosted sensitivity for sad expression → trust at 35 %
         "Angry":    0.40,  # strong expression → 40 %
         "Fear":     0.42,  # high arousal → 42 %
         "Disgust":  0.48,  # often confused → 48 %
