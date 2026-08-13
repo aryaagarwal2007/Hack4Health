@@ -488,7 +488,7 @@ def render_interactive_tabular_inputs(key_prefix="tab_input"):
         with cols[idx]:
             st.markdown(f'<div style="background:#1c2230;border:1px solid #2d3748;border-radius:12px;padding:1rem;height:100%">'
                         f'<p style="font-size:0.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#22d3b0;margin-bottom:0.75rem">{grp_name}</p>', unsafe_allow_html=True)
-            for feat in feats            for feat in feats:
+            for feat in feats:
                 lo, hi, df = FEATURE_RANGES[feat]
                 step_val = 0.1 if isinstance(df, float) and df < 5.0 else (0.5 if isinstance(df, float) else 1)
                 sk = f"{key_prefix}_{feat}"
