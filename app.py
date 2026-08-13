@@ -319,6 +319,19 @@ def status_badge(status):
     lbl_txt = STATUS_LABEL.get(status, status)
     return f'<span class="badge" style="color:{c};background:{bg};border:1px solid {c}">{lbl_txt}</span>'
 
+def get_current_feature_values():
+    vals = {}
+    for feat in FEATURE_COLS:
+        sk_tab = f"tab_mlp_{feat}"
+        sk_fus = f"fusion_inputs_{feat}"
+        if sk_tab in st.session_state:
+            vals[feat] = st.session_state[sk_tab]
+        elif sk_fus in st.session_state:
+            vals[feat] = st.session_state[sk_fus]
+        else:
+            vals[feat] = FEATURE_RANGES[feat][2]
+    return vals
+
 def html_prob_bars(prob_dict, highlight_key=None, palette=None):
     bars = ""
     for k, v in sorted(prob_dict.items(), key=lambda x:-x[1]):
@@ -879,7 +892,7 @@ with t_cam:
                 cv2.rectangle(frame_preview,(x,y),(x+w,y+h),(34,211,176),2)
 
             with st.spinner("Running multimodal inference…"):
-                realtime_res = pipeline.predict_realtime_frame(frame_np, feature_values)
+                realtime_res = pipeline.predict_realtime_frame(frame_np, get_current_feature_values())
 
             st.markdown("<div style='height:0.4rem'></div>", unsafe_allow_html=True)
             full_result_block(realtime_res)
