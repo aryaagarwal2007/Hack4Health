@@ -865,8 +865,6 @@ with t_cam:
     with wc1:
         st.markdown(overline("Live Camera Input"), unsafe_allow_html=True)
         camera_photo = st.camera_input("Take a photo", key="live_webcam", label_visibility="collapsed")
-        st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
-        webcam_tab_inputs = render_interactive_tabular_inputs(key_prefix="webcam_inputs")
 
     with wc2:
         if camera_photo is not None:
@@ -885,7 +883,7 @@ with t_cam:
                 cv2.rectangle(frame_preview,(x,y),(x+w,y+h),(34,211,176),2)
 
             with st.spinner("Running multimodal inference…"):
-                realtime_res = pipeline.predict_realtime_frame(frame_np, webcam_tab_inputs)
+                realtime_res = pipeline.predict_realtime_frame(frame_np, feature_values)
 
             st.markdown("<div style='height:0.4rem'></div>", unsafe_allow_html=True)
             full_result_block(realtime_res)
