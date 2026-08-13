@@ -488,25 +488,21 @@ def render_interactive_tabular_inputs(key_prefix="tab_input"):
         with cols[idx]:
             st.markdown(f'<div style="background:#1c2230;border:1px solid #2d3748;border-radius:12px;padding:1rem;height:100%">'
                         f'<p style="font-size:0.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#22d3b0;margin-bottom:0.75rem">{grp_name}</p>', unsafe_allow_html=True)
-            for feat in feats:
+            for feat in feats            for feat in feats:
                 lo, hi, df = FEATURE_RANGES[feat]
                 step_val = 0.1 if isinstance(df, float) and df < 5.0 else (0.5 if isinstance(df, float) else 1)
-                
-                # Check session state default
                 sk = f"{key_prefix}_{feat}"
-                if sk not in st.session_state:
-                    st.session_state[sk] = float(df) if isinstance(df, float) else int(df)
 
                 if isinstance(df, float):
                     val = st.number_input(
                         lbl(feat), min_value=float(lo), max_value=float(hi),
-                        value=float(st.session_state[sk]), step=float(step_val),
+                        value=float(df), step=float(step_val),
                         key=sk
                     )
                 else:
                     val = st.number_input(
                         lbl(feat), min_value=int(lo), max_value=int(hi),
-                        value=int(st.session_state[sk]), step=int(step_val),
+                        value=int(df), step=int(step_val),
                         key=sk
                     )
                 inputs[feat] = val
