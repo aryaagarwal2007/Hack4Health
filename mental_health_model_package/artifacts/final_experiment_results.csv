@@ -1,0 +1,2 @@
+model,architecture,activation,dropout,temperature,best_epoch,test_accuracy,test_macro_f1,test_weighted_f1,test_balanced_accuracy,test_severe_f1,test_severe_recall,test_severe_precision,test_dep_r2,test_anx_r2,test_str_r2
+Final Optimized Residual MLP,"(128, 128, 64) Residual",relu,0.25,1.5,23,0.2733333333333333,0.22447443878233223,0.2898715845055116,0.22273753113767053,0.020202020202020204,0.05263157894736842,0.0125,-0.03046715259552002,-0.019683480262756348,-0.01684093475341797

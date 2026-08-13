@@ -1,0 +1,18 @@
+{
+  "model_name": "Optimal 2-Layer Multitask ReLU MLP",
+  "architecture": "(128, 64)",
+  "input_dim": 18,
+  "num_classes": 4,
+  "num_reg_targets": 3,
+  "activation": "relu",
+  "dropout": 0.25,
+  "use_batchnorm": true,
+  "optimizer": "AdamW",
+  "learning_rate": 0.001,
+  "weight_decay": 0.0001,
+  "scheduler": "ReduceLROnPlateau",
+  "best_epoch": 1,
+  "val_macro_f1": 0.2567421072806563,
+  "test_macro_f1": 0.2539766563755766,
+  "test_accuracy": 0.3233333333333333
+}
